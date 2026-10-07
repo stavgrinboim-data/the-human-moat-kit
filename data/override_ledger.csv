@@ -1,0 +1,5 @@
+exception_id,customer_id,exception_type,parent_customer_id,mrr_override,metric,reason,approved_by,approved_at,valid_from,valid_until,notes
+EXC-001,ENT-0417,count_as_paying,,4200,paying_customer,Annual enterprise deal paid by invoice + bank transfer. Not in billing.,VP Finance,2026-03-02,2026-03-01,2027-02-28,Contract #C-2026-018. Renewal owner: AE team.
+EXC-002,SUB-0112,merge_into_parent,ENT-0388,,paying_customer,Subsidiary on the parent's single group contract.,VP Finance,2026-04-15,2026-04-15,,Count once under ENT-0388. Separate workspace for EU entity.
+EXC-003,CHN-0093,exclude,,,paying_customer,Downgraded to Free in March; cancellation never reached billing.,VP Finance,2026-05-07,2026-05-07,,Billing ticket BILL-221 open to fix at source. Remove row once fixed.
+EXC-004,ENT-0502,count_as_paying,,1850,paying_customer,Signed pilot-to-paid conversion; first invoice issued manually.,VP Finance,2026-06-10,2026-06-01,2026-09-30,Expired: moved to card billing in October. Kept for audit trail.

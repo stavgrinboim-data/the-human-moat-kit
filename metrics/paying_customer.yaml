@@ -1,0 +1,67 @@
+# =============================================================================
+# Metric definition: Paying Customer
+# -----------------------------------------------------------------------------
+# This file is not technical documentation. It is a record of business
+# decisions, and of the mistakes that forced them.
+# Every line here is a decision that someone had to make.
+# =============================================================================
+
+metric: paying_customer
+version: 1.2.0
+status: certified            # draft | certified | deprecated
+
+description: >
+  A customer (parent account) that is contractually paying us today,
+  regardless of HOW they pay: card subscription, invoice, or bank transfer.
+
+# --- WHAT do we count? -------------------------------------------------------
+grain: customer_id           # one row = one customer. Subsidiaries roll up to the parent.
+
+# --- WHERE does the number start? --------------------------------------------
+base: billing.subscriptions  # Billing is the BASE, not the absolute truth.
+
+require:                     # A billing row counts only if ALL of these hold
+  - status IN ('active', 'past_due')
+  - mrr > 0                  # "active" with $0 (100% coupon, free plan) is not paying. See Gotcha #2.
+
+# --- WHAT does the base miss? ------------------------------------------------
+exceptions:
+  source: governance.override_ledger   # The exceptions table. Check it BEFORE returning a number.
+  types:
+    count_as_paying:   "Invoice/wire deal that never touches billing. Add it."            # Gotcha #1
+    exclude:           "Looks paying in billing, isn't (cancellation never synced)."      # Gotcha #2
+    merge_into_parent: "Subsidiary on the parent's contract. Count once, under parent."
+  active_when: valid_until IS NULL OR valid_until >= CURRENT_DATE
+  rule: every exception row MUST have approved_by. No name, no exception.
+
+# --- HOW may you read it? ----------------------------------------------------
+access:
+  read_from: analytics.paying_customers_v   # The single door. Dashboards, reports, AI agents.
+  never_read_directly:                      # Bypassing the door = wrong answer. See Gotcha #3.
+    - billing.subscriptions
+    - crm.opportunities
+    - governance.override_ledger
+
+# --- WHO decides? ------------------------------------------------------------
+owner:
+  role: VP Finance           # ONE human accountable for this definition.
+  steward: Head of Data      # Maintains the code; does not change the meaning alone.
+  change_process: >
+    Definition changes = pull request approved by the owner.
+    Exception rows = ledger entry signed by the owner (or their delegate).
+
+# --- WHAT should an AI agent know before querying? ---------------------------
+gotchas:                     # Full text in docs/gotchas_book.md
+  - G001  # Invoice deals don't exist in billing
+  - G002  # "Paying" in billing doesn't always mean paying
+  - G003  # Never bypass the single door
+
+related_metrics: [mrr, arr, logo_churn, net_revenue_retention]
+
+changelog:
+  - version: 1.2.0
+    change: "Added G003 after an automated test hit billing directly and lost every ledger customer."
+  - version: 1.1.0
+    change: "Added require: mrr > 0 after free-plan accounts showed status=active."
+  - version: 1.0.0
+    change: "Added override_ledger + owner after CRM, billing and Finance gave 3 different counts."
